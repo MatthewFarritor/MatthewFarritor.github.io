@@ -1,314 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Random Wikipedia Audio</title>
-<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-
-
-<style>
-  
-  body {
-    margin: 0;
-    padding: 20px;
-    font-family: 'MedievalSharp', cursive;
-    min-height: 100vh;
-    color: #3c2d1d;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle, #f4ead5 0%, #e8dcc0 100%);
-    text-align: center;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  h1 {
-    font-size: 2.5em;
-    margin: 0 0 20px 0;
-    font-weight: normal;
-    color: #3c2d1d;
-    text-shadow: 1px 1px #d3b992;
-    position: relative;
-    padding: 0 10px;
-    word-wrap: break-word;
-  }
-  
-  h1::after {
-    content: '';
-    display: block;
-    width: 100px;
-    height: 2px;
-    background: #3c2d1d;
-    margin: 10px auto 0 auto;
-  }
-
-  #currentTrack {
-    font-size: 1.3em;
-    margin: 0 auto 30px auto;
-    color: #3c2d1d;
-    padding: 15px;
-    background: #e8dcc0;
-    border: 2px solid #3c2d1d;
-    border-radius: 5px;
-    box-shadow: 2px 2px #d3b992;
-    width: 90%;
-    max-width: 600px;
-    box-sizing: border-box;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-  }
-
-  .playing-indicator {
-    display: inline-block;
-    margin-left: 10px;
-    width: 8px;
-    height: 8px;
-    background: #3c2d1d;
-    border-radius: 50%;
-    animation: blink 1s infinite;
-    vertical-align: middle;
-  }
-  
-  @keyframes blink {
-    0%   { opacity: 1; }
-    50%  { opacity: 0; }
-    100% { opacity: 1; }
-  }
-
-  .controls {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 20px;
-    padding: 0 10px;
-  }
-
-  .btn {
-    background: #624a2e;
-    color: #ece0c8;
-    font-size: 1.2em;
-    padding: 12px 25px;
-    border: 3px solid #3c2d1d;
-    border-radius: 8px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: transform 0.1s ease;
-    position: relative;
-    text-shadow: 1px 1px #3c2d1d;
-    font-family: 'MedievalSharp', cursive;
-    min-width: 120px;
-    touch-action: manipulation;
-  }
-
-  .btn:active {
-    transform: scale(0.95);
-  }
-
-  #audioPlayer {
-    display: none;
-  }
-
-  @media(max-width: 600px) {
-    body {
-      padding: 15px;
-    }
-    
-    h1 {
-      font-size: 2em;
-      margin-bottom: 15px;
-    }
-    
-    #currentTrack {
-      font-size: 1.1em;
-      margin-bottom: 20px;
-      padding: 12px;
-    }
-    
-    .btn {
-      font-size: 1.1em;
-      padding: 10px 20px;
-      min-width: 100px;
-    }
-  }
-</style>
-
+  <meta charset="UTF-8">
+  <title>STL Model Viewer</title>
+  <style>
+    /* make the canvas fill the window and page white */
+    body { margin: 0; background: #fff; overflow: hidden; }
+    canvas { display: block; }
+  </style>
 </head>
+    <body>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.154.0/build/three.module.js';
+    import { STLLoader } from 'https://unpkg.com/three@0.154.0/examples/jsm/loaders/STLLoader.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js';
 
-<body>
-<h1>Random Wikipedia Audio</h1>
+    // Scene + Camera + Renderer
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
 
-<div id="currentTrack">Ready to play</div>
+    // Lights
+    const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444, 1.2 );
+    hemiLight.position.set( 0, 20, 0 );
+    scene.add( hemiLight );
 
-<div class="controls">
-  <button id="playBtn" class="btn">Play</button>
-  <button id="skipBtn" class="btn">Skip</button>
-</div>
+    const dirLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
+    dirLight.position.set( 5, 10, 7.5 );
+    scene.add( dirLight );
 
-<script>
-let audioData = null;
-let currentKey = null;
-let isPlaying = false;
-let sound = null;
+    // Load STL
+    const loader = new STLLoader();
+    loader.load(
+      'model.stl',           // Path to your STL file
+      geometry => {
+        // Create a material and mesh from the loaded geometry
+        const material = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.3, roughness: 0.6 });
+        const mesh     = new THREE.Mesh( geometry, material );
 
-const playBtn = document.getElementById('playBtn');
-const skipBtn = document.getElementById('skipBtn');
-const currentTrack = document.getElementById('currentTrack');
+        // Center geometry and scale (optional)
+        geometry.center();
+        const scale = 0.01; // adjust based on your model units
+        mesh.scale.setScalar(scale);
 
-async function loadAudioData() {
-    try {
-        const response = await fetch('all_audio_data.json');
-        if (!response.ok) {
-            throw new Error(`Failed to load audio data: ${response.statusText}`);
-        }
-        audioData = await response.json();
-        currentTrack.textContent = "Ready to play";
-    } catch (error) {
-        console.error('Error loading audio data:', error);
-        currentTrack.textContent = `Error: ${error.message}`;
+        scene.add( mesh );
+      },
+      xhr => {
+        // optional progress callback
+        console.log( `STL ${ (xhr.loaded / xhr.total * 100).toFixed(1) }% loaded` );
+      },
+      err => console.error( 'Error loading STL:', err )
+    );
+
+    // Controls
+    const controls = new OrbitControls( camera, renderer.domElement );
+    controls.enableDamping = true;
+
+    // Initial camera position
+    camera.position.set( 0, 0.1, 0.3 );
+    controls.update();
+
+    // Handle window resize
+    window.addEventListener( 'resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+    });
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame( animate );
+      controls.update();
+      renderer.render( scene, camera );
     }
-}
-
-function getRandomKey() {
-    const keys = Object.keys(audioData);
-    return keys[Math.floor(Math.random() * keys.length)];
-}
-
-async function pickRandomTrackAndPlay() {
-    if (!audioData) {
-        currentTrack.textContent = "Audio data not loaded yet";
-        return;
-    }
-
-    try {
-        // Stop current sound if exists
-        if (sound) {
-            sound.unload();
-        }
-
-        currentKey = getRandomKey();
-        const url = audioData[currentKey];
-        
-        // Create new Howl instance
-        sound = new Howl({
-            src: [url],
-            html5: true,
-            format: ['ogg', 'wav'],
-            onplay: function() {
-                isPlaying = true;
-                updateTrackInfo(currentKey);
-                playBtn.textContent = "Pause";
-                addPlayingIndicator();
-            },
-            onend: function() {
-                pickRandomTrackAndPlay();
-            },
-            onstop: function() {
-                isPlaying = false;
-                playBtn.textContent = "Play";
-                removePlayingIndicator();
-            },
-            onloaderror: function() {
-                console.error("Load error - trying next track");
-                setTimeout(() => pickRandomTrackAndPlay(), 1000);
-            },
-            onplayerror: function() {
-                console.error("Play error - trying next track");
-                setTimeout(() => pickRandomTrackAndPlay(), 1000);
-            }
-        });
-
-        sound.play();
-
-    } catch (error) {
-        console.error("Playback error:", error);
-        currentTrack.textContent = "Playback error - trying next track";
-        setTimeout(() => pickRandomTrackAndPlay(), 1000);
-    }
-}
-
-function updateTrackInfo(title) {
-    currentTrack.textContent = `Now Playing: ${title}`;
-}
-
-function addPlayingIndicator() {
-    if (!document.querySelector('.playing-indicator')) {
-        const indicator = document.createElement('span');
-        indicator.classList.add('playing-indicator');
-        currentTrack.appendChild(indicator);
-    }
-}
-
-function removePlayingIndicator() {
-    const indicator = document.querySelector('.playing-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
-
-playBtn.addEventListener('click', async () => {
-    try {
-        if (!isPlaying) {
-            if (!sound || !currentKey) {
-                await pickRandomTrackAndPlay();
-            } else {
-                sound.play();
-            }
-        } else {
-            if (sound) {
-                sound.pause();
-                isPlaying = false;
-                playBtn.textContent = "Play";
-                removePlayingIndicator();
-            }
-        }
-    } catch (error) {
-        console.error("Playback control error:", error);
-        currentTrack.textContent = "Playback error - please try again";
-    }
-});
-
-skipBtn.addEventListener('click', async () => {
-    await pickRandomTrackAndPlay();
-});
-
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        window.wasPlaying = isPlaying;
-        if (sound && isPlaying) {
-            sound.pause();
-        }
-    } else {
-        if (window.wasPlaying && sound) {
-            sound.play();
-        }
-    }
-});
-
-async function preventSleep() {
-    try {
-        if ('wakeLock' in navigator) {
-            const wakeLock = await navigator.wakeLock.request('screen');
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
-                    await navigator.wakeLock.request('screen');
-                }
-            });
-        }
-    } catch (err) {
-        console.log('Wake Lock error:', err);
-    }
-}
-
-loadAudioData();
-preventSleep();
-</script>
-
+    animate();
+  </script>
 </body>
 </html>
